@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  voicedesk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./voicedesk.db
+      - ENABLE_BEDROCK=false
+      - BEDROCK_MODEL_ID=amazon.nova-micro-v1:0
+      - AWS_REGION=us-east-1
+    volumes:
+      - voicedesk-data:/app
+    restart: unless-stopped
+
+volumes:
+  voicedesk-data:

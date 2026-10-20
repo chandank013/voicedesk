@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-harbor: #E9EFF1;
+  --color-sheet: #FFFFFF;
+  --color-spruce: #10302F;
+  --color-tide: #2F6F73;
+  --color-signal: #F0A030;
+  --color-lilac: #6B5A8E;
+  --color-brick: #B23A2B;
+}
+
+.dark {
+  --color-harbor: #0B1120;
+  --color-sheet: #0F172A;
+  --color-spruce: #F1F5F9;
+  --color-tide: #38BDF8;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-harbor);
+  color: var(--color-spruce);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar for trace panel and content */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Accessible focus ring */
+*:focus-visible {
+  outline: 2px solid #2F6F73;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
