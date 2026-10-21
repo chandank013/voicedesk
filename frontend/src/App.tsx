@@ -6,6 +6,11 @@ import { StatsRow } from './components/StatsRow';
 import { TasksPanel } from './components/TasksPanel';
 import { NotesPanel } from './components/NotesPanel';
 import { TracePanel } from './components/TracePanel';
+import { TasksView } from './components/TasksView';
+import { NotesView } from './components/NotesView';
+import { ActivityView } from './components/ActivityView';
+import { InsightsView } from './components/InsightsView';
+import { SettingsView } from './components/SettingsView';
 import { AddTaskModal } from './components/AddTaskModal';
 import { AddNoteModal } from './components/AddNoteModal';
 import { AskNotesModal } from './components/AskNotesModal';
@@ -281,51 +286,104 @@ export const App: React.FC = () => {
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
         />
 
-        {/* 3. Three-Column Main Workspace on Desktop (Workspace + Live Trace Panel) */}
+        {/* 3. Main Workspace according to activeTab */}
         <main className="flex-1 p-4 sm:p-6 lg:p-7 overflow-y-auto">
-          <div className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            
-            {/* Center Area: Hero + Stats + Tasks + Notes (8 cols on XL screens) */}
-            <div className="xl:col-span-8 space-y-6">
-              {/* Voice Assistant Hero Section */}
-              <HeroSection
-                onExecuteUtterance={handleExecuteUtterance}
-                isProcessing={isProcessingVoice}
-                latestInteraction={latestInteraction}
-              />
-
-              {/* Statistics Row (4 panels) */}
-              <StatsRow stats={stats} />
-
-              {/* Tasks and Notes Section Side-by-Side */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-                <TasksPanel
-                  tasks={tasks}
-                  onToggleTask={handleToggleTask}
-                  onDeleteTask={handleDeleteTask}
-                  onOpenAddTaskModal={() => setIsAddTaskOpen(true)}
+          {activeTab === 'home' && (
+            <div className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+              {/* Center Area: Hero + Stats + Tasks + Notes (8 cols on XL screens) */}
+              <div className="xl:col-span-8 space-y-6">
+                {/* Voice Assistant Hero Section */}
+                <HeroSection
+                  onExecuteUtterance={handleExecuteUtterance}
+                  isProcessing={isProcessingVoice}
+                  latestInteraction={latestInteraction}
                 />
 
-                <NotesPanel
-                  notes={notes}
-                  onAddNoteClick={() => setIsAddNoteOpen(true)}
-                  onAskNotesClick={() => setIsAskNotesOpen(true)}
-                  onDeleteNote={handleDeleteNote}
-                  onSelectNote={(note) => setSelectedNote(note)}
-                  onSearchNotes={handleSearchNotes}
+                {/* Statistics Row (4 panels) */}
+                <StatsRow stats={stats} />
+
+                {/* Tasks and Notes Section Side-by-Side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                  <TasksPanel
+                    tasks={tasks}
+                    onToggleTask={handleToggleTask}
+                    onDeleteTask={handleDeleteTask}
+                    onOpenAddTaskModal={() => setIsAddTaskOpen(true)}
+                  />
+
+                  <NotesPanel
+                    notes={notes}
+                    onAddNoteClick={() => setIsAddNoteOpen(true)}
+                    onAskNotesClick={() => setIsAskNotesOpen(true)}
+                    onDeleteNote={handleDeleteNote}
+                    onSelectNote={(note) => setSelectedNote(note)}
+                    onSearchNotes={handleSearchNotes}
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Live Activity / Trace Panel (4 cols on XL screens) */}
+              <div className="xl:col-span-4 sticky top-20">
+                <TracePanel
+                  toolCalls={toolCalls}
+                  newestCallId={newestCallId}
+                  className="h-[calc(100vh-6.5rem)]"
                 />
               </div>
             </div>
+          )}
 
-            {/* Right Column: Live Activity / Trace Panel (4 cols on XL screens) */}
-            <div className="xl:col-span-4 sticky top-20">
-              <TracePanel
-                toolCalls={toolCalls}
-                newestCallId={newestCallId}
-                className="h-[calc(100vh-6.5rem)]"
+          {activeTab === 'tasks' && (
+            <div className="max-w-5xl mx-auto">
+              <TasksView
+                tasks={tasks}
+                onToggleTask={handleToggleTask}
+                onDeleteTask={handleDeleteTask}
+                onOpenAddTaskModal={() => setIsAddTaskOpen(true)}
               />
             </div>
-          </div>
+          )}
+
+          {activeTab === 'notes' && (
+            <div className="max-w-6xl mx-auto">
+              <NotesView
+                notes={notes}
+                onAddNoteClick={() => setIsAddNoteOpen(true)}
+                onAskNotesClick={() => setIsAskNotesOpen(true)}
+                onDeleteNote={handleDeleteNote}
+                onSelectNote={(note) => setSelectedNote(note)}
+                onSearchNotes={handleSearchNotes}
+              />
+            </div>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="max-w-5xl mx-auto">
+              <ActivityView
+                toolCalls={toolCalls}
+                newestCallId={newestCallId}
+              />
+            </div>
+          )}
+
+          {activeTab === 'insights' && (
+            <div className="max-w-5xl mx-auto">
+              <InsightsView
+                stats={stats}
+                toolCalls={toolCalls}
+              />
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="max-w-4xl mx-auto">
+              <SettingsView
+                onResetDemo={() => setIsResetConfirmOpen(true)}
+                isDark={isDark}
+                toggleTheme={toggleTheme}
+              />
+            </div>
+          )}
         </main>
       </div>
 

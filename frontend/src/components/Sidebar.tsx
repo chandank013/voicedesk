@@ -73,11 +73,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => {
                   setActiveTab(item.id);
                   onCloseMobile?.();
                 }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                   isActive
                     ? 'bg-gradient-to-r from-indigo-600/80 to-indigo-700/60 text-white shadow-sm border border-indigo-500/40'
                     : 'text-slate-400 hover:text-white hover:bg-navy-800/60'
