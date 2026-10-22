@@ -346,8 +346,8 @@ backend/tests/test_backend.py::test_simulator_search_notes PASSED [100%]
 
 ## 📑 Hackathon Documentation Links
 
-- **Product Requirements Document (PRD):** [Download PRD (.docx)](docs/PRD.docx)
-- **Technical Requirements Document (TRD):** [Download TRD (.docx)](docs/TRD.docx)
+- **Product Requirements Document (PRD):** [Download PRD (.docx)](docs/VoiceDesk Product Requirements Document (PRD).docx)
+- **Technical Requirements Document (TRD):** [Download TRD (.docx)](docs/VoiceDesk Technical Requirements Document (TRD).docx)
 - **Friction Log:** [5 Detailed Entries with Severity & Fixes](docs/friction-log.md)
 - **Product Feedback:** [Feedback on MCP SDK, FastMCP, Bedrock, Alexa+](docs/product-feedback.md)
 
