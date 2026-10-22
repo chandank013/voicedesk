@@ -63,8 +63,6 @@ yarn-error.log*
 *.swp
 *.swo
 .DS_Store
-/docs/demo-script.md
-=======
 share/python-wheels/
 *.egg-info/
 .installed.cfg
