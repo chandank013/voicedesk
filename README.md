@@ -16,16 +16,17 @@
 2. [What It Does](#-what-it-does)
 3. [Key Differentiators](#-key-differentiators)
 4. [System Architecture](#-system-architecture)
-5. [Model Context Protocol (MCP) Specification](#-model-context-protocol-mcp-specification)
-6. [Design System & Frontend Tokens](#-design-system--frontend-tokens)
-7. [Tech Stack](#-tech-stack)
-8. [Quickstart & Local Setup](#-quickstart--local-setup)
-9. [Automated Testing & Verification](#-automated-testing--verification)
-10. [Challenges We Ran Into](#-challenges-we-ran-into)
-11. [What We Learned](#-what-we-learned)
-12. [What's Next for VoiceDesk](#-whats-next-for-voicedesk)
-13. [Hackathon Documentation Links](#-hackathon-documentation-links)
-14. [License](#-license)
+5. [Directory Layout & File Structure](#-directory-layout--file-structure)
+6. [Model Context Protocol (MCP) Specification](#-model-context-protocol-mcp-specification)
+7. [Design System & Frontend Tokens](#-design-system--frontend-tokens)
+8. [Tech Stack](#-tech-stack)
+9. [Quickstart & Local Setup](#-quickstart--local-setup)
+10. [Automated Testing & Verification](#-automated-testing--verification)
+11. [Challenges We Ran Into](#-challenges-we-ran-into)
+12. [What We Learned](#-what-we-learned)
+13. [What's Next for VoiceDesk](#-whats-next-for-voicedesk)
+14. [Hackathon Documentation Links](#-hackathon-documentation-links)
+15. [License](#-license)
 
 ---
 
@@ -100,6 +101,96 @@ VoiceDesk connects an official Alexa+ MCP server with a desktop productivity das
    │   • Tasks & Notes Panels    • Live Activity Trace Panel     │
    └─────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 📁 Directory Layout & File Structure
+
+```text
+VoiceDesk/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                     # GitHub Actions CI pipeline (backend & frontend tests)
+├── backend/
+│   ├── app/
+│   │   ├── api/                       # REST API endpoints for dashboard & simulator
+│   │   │   ├── events.py              # GET /api/events Server-Sent Events stream
+│   │   │   ├── notes.py               # GET/POST /api/notes & /recall
+│   │   │   ├── simulator.py           # POST /api/simulator/utterance voice router
+│   │   │   ├── stats.py               # GET /api/stats & POST /api/reset-demo
+│   │   │   ├── tasks.py               # GET/POST/PATCH/DELETE /api/tasks
+│   │   │   └── tool_calls.py          # GET /api/tool-calls activity feed
+│   │   ├── mcp/                       # Model Context Protocol implementation
+│   │   │   ├── client.py              # Real MCP client wrapper for simulator requests
+│   │   │   └── server.py              # FastMCP 2.x server with 6 tools (Streamable HTTP)
+│   │   ├── services/                  # Business logic and external service integrations
+│   │   │   ├── bedrock.py             # Amazon Bedrock Runtime Converse API (AWS Builder)
+│   │   │   ├── dates.py               # Relative natural date parsing (dateparser)
+│   │   │   ├── notes.py               # Note persistence & keyword search ranker
+│   │   │   ├── router.py              # Deterministic utterance-to-MCP intent router
+│   │   │   └── tasks.py               # Task CRUD & rapidfuzz fuzzy title matching
+│   │   ├── config.py                  # Pydantic v2 application configuration
+│   │   ├── db.py                      # SQLite database session (WAL mode) & demo data seeder
+│   │   ├── events.py                  # Pub/sub SSE event broadcaster queue
+│   │   ├── main.py                    # Unified FastAPI entrypoint (API + /mcp + static SPA)
+│   │   ├── models.py                  # SQLAlchemy declarative models (Task, Note, ToolCall)
+│   │   └── schemas.py                 # Pydantic validation models
+│   ├── tests/
+│   │   ├── test_backend.py            # Automated pytest test suite (8 integration tests)
+│   │   └── verify_simulator.py        # Standalone simulator test script
+│   ├── .env.example                   # Environment variable template
+│   ├── pyproject.toml                 # Python package specification
+│   └── requirements.txt               # Pinned Python backend dependencies
+├── docs/
+│   ├── PRD.docx                       # Product Requirements Document (.docx format)
+│   ├── TRD.docx                       # Technical Requirements Document (.docx format)
+│   ├── friction-log.md                # 5 detailed developer friction logs with fixes
+│   └── product-feedback.md            # Comprehensive feedback (MCP, Bedrock, Alexa+)
+├── frontend/
+│   ├── public/
+│   │   ├── favicon.svg                # Waveform brand favicon
+│   │   └── icons.svg                  # SVG symbol sprite
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── client.ts              # Type-safe API client wrappers
+│   │   │   └── sse.ts                 # React hook for real-time SSE updates
+│   │   ├── assets/                    # Image assets & illustrations
+│   │   ├── components/                # Modular UI components
+│   │   │   ├── ActivityView.tsx       # Dedicated full-width live telemetry view
+│   │   │   ├── AddNoteModal.tsx       # Modal for capturing notes with tags
+│   │   │   ├── AddTaskModal.tsx       # Modal for creating tasks with natural dates
+│   │   │   ├── AskNotesModal.tsx      # Bedrock Converse grounded recall modal
+│   │   │   ├── HeroSection.tsx        # Voice assistant hero with glowing mic & waveform
+│   │   │   ├── InsightsView.tsx       # Analytics & tool invocation breakdown view
+│   │   │   ├── NoteDetailModal.tsx    # Modal for reading note details and tags
+│   │   │   ├── NotesPanel.tsx         # Side-by-side notes card with search & Ask Bedrock
+│   │   │   ├── NotesView.tsx          # Dedicated knowledge base & notes grid view
+│   │   │   ├── ResetDemoModal.tsx     # Confirmation dialog for resetting demo data
+│   │   │   ├── SettingsView.tsx       # System & MCP server settings view
+│   │   │   ├── Sidebar.tsx            # Left dark navy sidebar (~260px) with navigation
+│   │   │   ├── StatsRow.tsx           # 4 KPI cards (Tasks, Notes, Due, Tool Calls)
+│   │   │   ├── TasksPanel.tsx         # Side-by-side tasks card with filter chips
+│   │   │   ├── TasksView.tsx          # Dedicated task management view
+│   │   │   ├── Toast.tsx              # Toast notification alerts
+│   │   │   ├── TopNav.tsx             # Search bar, theme switcher & profile avatar
+│   │   │   └── TracePanel.tsx         # Live Activity MCP tool trace timeline
+│   │   ├── types/
+│   │   │   └── index.ts               # TypeScript domain interfaces (Task, Note, ToolCall)
+│   │   ├── App.css                    # Component specific styles
+│   │   ├── App.tsx                    # Main reactive workspace layout & tab router
+│   │   ├── index.css                  # Tailwind directives & design tokens
+│   │   └── main.tsx                   # React application entrypoint
+│   ├── index.html                     # HTML template with Google Fonts
+│   ├── package.json                   # NPM dependencies and build scripts
+│   ├── postcss.config.js              # PostCSS configuration
+│   ├── tailwind.config.js             # Custom Tailwind color tokens & animations
+│   ├── tsconfig.json                  # TypeScript project references
+│   └── vite.config.ts                 # Vite configuration with /api & /mcp proxying
+├── .gitignore                         # Git exclusion rules
+├── docker-compose.yml                 # Single-command Docker container orchestration
+├── Dockerfile                         # Production multi-stage Docker build
+├── LICENSE                            # MIT Open Source License
+└── README.md                          # Main project guide & Devpost submission
 
 ---
 
@@ -255,13 +346,13 @@ backend/tests/test_backend.py::test_simulator_search_notes PASSED [100%]
 
 ## 📑 Hackathon Documentation Links
 
-- [PRD, TRD & Design Brief](docs/PRD-TRD-Frontend.md)
-- [Friction Log (5 Detailed Entries)](docs/friction-log.md)
-- [Product Feedback (MCP, Bedrock, Alexa+)](docs/product-feedback.md)
-- [2:45 Demo Recording Script](docs/demo-script.md)
+- **Product Requirements Document (PRD):** [Download PRD (.docx)](docs/PRD.docx)
+- **Technical Requirements Document (TRD):** [Download TRD (.docx)](docs/TRD.docx)
+- **Friction Log:** [5 Detailed Entries with Severity & Fixes](docs/friction-log.md)
+- **Product Feedback:** [Feedback on MCP SDK, FastMCP, Bedrock, Alexa+](docs/product-feedback.md)
 
 ---
-
+   
 ## ⚖️ License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details. Built with ❤️ for the **Amazon Developer Hackathon (Devpost)**.
