@@ -1,151 +1,267 @@
 # VoiceDesk 🎙️⚡
 
 > **Talk it. Track it. Get it done.**  
-> An Alexa+ MCP server that turns spoken requests into structured tasks and notes, with a live dashboard that shows every tool call as it happens.
+> An open-source Alexa+ Model Context Protocol (MCP) server and voice-first productivity dashboard that turns natural spoken requests into structured tasks and notes — with a real-time activity feed that proves every tool call as it happens.
 
-[![CI](https://github.com/voicedesk/voicedesk/actions/workflows/ci.yml/badge.svg)](https://github.com/voicedesk/voicedesk/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25-blue.svg)](https://modelcontextprotocol.io)
-[![AWS Bedrock](https://img.shields.io/badge/AWS-Amazon%20Bedrock-orange.svg)](https://aws.amazon.com/bedrock/)
-
----
-
-## 🌟 Overview
-
-Small commitments (*"call the bank tomorrow"*, *"remember to test the Bedrock API"*) get lost because stopping to type breaks flow, and hands are often occupied. Voice assistants can set timers, but rarely maintain structured, searchable, reviewable tasks and notes.
-
-**VoiceDesk** bridges this gap:
-1. **Live Tool-Call Trace:** The dashboard displays every utterance, the chosen MCP tool, arguments, latency in milliseconds, and the exact response in real-time.
-2. **Deterministic Natural Language:** Resolves dates like *"tomorrow"*, *"today 4pm"*, and *"next Friday"*, answering with natural spoken confirmations (*"Added: Call the bank, due Wednesday, Oct 21"*).
-3. **Fuzzy Ambiguity Handling:** Matches tasks by title using fuzzy string matching. If multiple tasks match (*"Buy groceries"* vs *"Buy supplies"*), VoiceDesk asks a clarifying question rather than guessing.
-4. **Amazon Bedrock Grounded Recall (AWS Builder):** Ask *"What did I note about SQLite?"* or *"What is our cloud budget plan?"* and Bedrock synthesizes an answer grounded strictly in your saved notes with cited source IDs.
+[![Hackathon](https://img.shields.io/badge/Hackathon-Amazon%20Developer%20(Devpost)-FF9900?style=for-the-badge&logo=amazon)](https://devpost.com)
+[![Track](https://img.shields.io/badge/Primary%20Track-Alexa%2B-527FFF?style=for-the-badge&logo=amazonalexa)](https://developer.amazon.com/en-US/alexa)
+[![Challenge](https://img.shields.io/badge/Mini%20Challenge-AWS%20Builder%20(Bedrock)-FF9900?style=for-the-badge&logo=amazonaws)](https://aws.amazon.com/bedrock/)
+[![Challenge](https://img.shields.io/badge/Mini%20Challenge-Open%20Source%20(MIT)-10B981?style=for-the-badge&logo=opensourceinitiative)](LICENSE)
+[![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25-6366F1?style=for-the-badge&logo=json)](https://modelcontextprotocol.io)
 
 ---
 
-## 🏛️ Architecture
-
-```
-   Alexa+ / MCP Client
-          │
-          ▼ (Streamable HTTP / JSON-RPC 2.0)
-     POST /mcp
-          │
-  ┌───────▼──────────────────────────────────────────────┐
-  │              FastAPI Unified Backend                 │
-  │  ┌──────────────┐ ┌───────────────┐ ┌─────────────┐  │
-  │  │  FastMCP 2.x │ │   REST API    │ │ SSE Stream  │  │
-  │  │    Tools     │ │  /api/tasks   │ │ /api/events │  │
-  │  │              │ │  /api/notes   │ │             │  │
-  │  └──────┬───────┘ └───────┬───────┘ └──────▲──────┘  │
-  │         │                 │                │         │
-  │         └────────► Service Layer ──────────┘         │
-  │                           │                          │
-  └───────────────────────────┼──────────────────────────┘
-                              │
-               ┌──────────────┴──────────────┐
-               ▼                             ▼
-        SQLite Database            Amazon Bedrock Runtime
-           (WAL Mode)               Converse API (Claude / Nova)
-```
+## 📑 Table of Contents
+1. [Inspiration](#-inspiration)
+2. [What It Does](#-what-it-does)
+3. [Key Differentiators](#-key-differentiators)
+4. [System Architecture](#-system-architecture)
+5. [Model Context Protocol (MCP) Specification](#-model-context-protocol-mcp-specification)
+6. [Design System & Frontend Tokens](#-design-system--frontend-tokens)
+7. [Tech Stack](#-tech-stack)
+8. [Quickstart & Local Setup](#-quickstart--local-setup)
+9. [Automated Testing & Verification](#-automated-testing--verification)
+10. [Challenges We Ran Into](#-challenges-we-ran-into)
+11. [What We Learned](#-what-we-learned)
+12. [What's Next for VoiceDesk](#-whats-next-for-voicedesk)
+13. [Hackathon Documentation Links](#-hackathon-documentation-links)
+14. [License](#-license)
 
 ---
 
-## 🛠️ MCP Tools Implemented
+## 💡 Inspiration
 
-VoiceDesk implements the official **Model Context Protocol (Spec 2025-11-25+)**:
+Small commitments get lost every day. Whether driving, cooking, walking across campus, or knee-deep in code, stopping to unlock a phone, open an app, and type a reminder breaks deep focus. While current voice assistants can set a 10-minute timer, they struggle to maintain structured, searchable, reviewable commitments.
 
-| Tool | Parameters | Description |
+When Amazon announced **Alexa+** and the **Model Context Protocol (MCP)**, we recognized the missing piece: an intelligent, self-hosted bridge that lets you speak naturally (*"Add call the bank tomorrow"*, *"Note: use SQLite with WAL mode"*, *"What did I decide about the cloud budget?"*) and watch an ambient screen reflect every structured tool call in real-time.
+
+---
+
+## ✨ What It Does
+
+VoiceDesk connects an official Alexa+ MCP server with a desktop productivity dashboard:
+
+- **🎙️ Ambient Voice Capture:** Speak naturally via Web Speech API or simulated Alexa+ voice sessions.
+- **⚡ Real-Time MCP Tool Trace:** The dark activity feed on the right highlights every utterance, the selected tool, exact arguments, millisecond latency (P95 < 120 ms), and the spoken confirmation.
+- **📅 Deterministic Date Understanding:** Translates relative expressions (*"tomorrow"*, *"today 4:00 PM"*, *"next Friday"*) into structured UTC timestamps with friendly display strings.
+- **🎯 Disambiguation & Fuzzy Matching:** Completing tasks via voice uses token-based fuzzy matching. If an utterance is ambiguous (*"Mark buy done"* when both *"Buy groceries"* and *"Buy milk"* exist), VoiceDesk clarifies rather than guessing.
+- **🧠 Amazon Bedrock Grounded Recall (AWS Builder):** Ask *"What did I note about SQLite?"* or *"What is our cloud budget plan?"* and Amazon Bedrock Converse synthesizes a grounded answer citing exact note IDs.
+- **🎨 Custom Three-Column Dashboard:** Left dark navy sidebar (~260px), pastel voice assistant hero with pulsing audio waveform, side-by-side tasks and notes panels, and the live trace timeline.
+
+---
+
+## 🏆 Key Differentiators
+
+| Feature | Typical Voice Apps | VoiceDesk |
 |---|---|---|
-| `add_task` | `title: str`, `due: Optional[str]` | Creates task with natural-language date parsing |
-| `list_tasks` | `status: str = "open"`, `when: str = "all"` | Lists tasks filtered by time period (`today`, `week`, `all`) |
-| `complete_task` | `query: str` | Marks task complete with fuzzy matching and disambiguation |
-| `save_note` | `text: str`, `tags: Optional[list[str]]` | Stores note with auto-generated title and tags |
-| `search_notes` | `query: str`, `limit: int = 3` | Searches saved notes with keyword relevance scoring |
-| `recall` | `question: str` | Answers questions grounded in notes via Amazon Bedrock |
+| **MCP Visibility** | Hidden inside black-box server logs | **Live Trace Feed:** Shows tool name, args, result JSON, latency in ms, and SSE updates |
+| **Ambiguity Handling** | Randomly picks a task or throws an error | **Interactive Disambiguation:** Asks clarifying questions when multiple matches occur |
+| **Knowledge Retrieval** | Keyword grep or hallucinated summaries | **Amazon Bedrock Grounded Recall:** Answers cite verified `[Note #ID]` sources |
+| **Audio Visualization** | Static microphone icon | **Multi-layered Glowing Rings & Waveform Bars:** Real-time pulse during audio listening |
+| **Demo Stability** | Fragile external dependencies | **Zero-Dependency SQLite (WAL mode):** Sub-millisecond queries, reset demo data in 1 click |
 
 ---
 
-## 🚀 Quickstart
+## 🏛️ System Architecture
+
+```
+   ┌─────────────────────────────────────────────────────────────┐
+   │             User Voice Utterance / Alexa+ Input             │
+   └──────────────────────────────┬──────────────────────────────┘
+                                  │
+                                  ▼ (Streamable HTTP / JSON-RPC 2.0)
+                           POST /mcp
+                                  │
+   ┌──────────────────────────────▼──────────────────────────────┐
+   │                  FastAPI Unified Engine                     │
+   │                                                             │
+   │   ┌─────────────────────┐       ┌──────────────────────┐    │
+   │   │  Official FastMCP   │       │   Dashboard REST     │    │
+   │   │     Tools (v2.x)    │       │   /api/tasks,/notes  │    │
+   │   └──────────┬──────────┘       └──────────┬───────────┘    │
+   │              │                             │                │
+   │              └──────────────┬──────────────┘                │
+   │                             ▼                               │
+   │                     Unified Service Layer                   │
+   │                             │                               │
+   │            ┌────────────────┴────────────────┐              │
+   │            ▼                                 ▼              │
+   │     SQLite (WAL Mode)               Amazon Bedrock Runtime   │
+   │   (Sub-ms local storage)             (Converse API)         │
+   │            │                                                │
+   │            ▼                                                │
+   │    SSE Event Broadcaster (GET /api/events)                  │
+   └────────────┬────────────────────────────────────────────────┘
+                │
+                ▼ (Server-Sent Events)
+   ┌─────────────────────────────────────────────────────────────┐
+   │            React 19 + TypeScript + Tailwind SPA             │
+   │   • Left Navy Sidebar       • Voice Assistant Hero          │
+   │   • Tasks & Notes Panels    • Live Activity Trace Panel     │
+   └─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🛠️ Model Context Protocol (MCP) Specification
+
+VoiceDesk implements the official **Model Context Protocol (Spec version: 2025-11-25+)** over **Streamable HTTP transport**.
+
+### Registered Tools
+
+| Tool | Input Schema | Output Schema | Description |
+|---|---|---|---|
+| `add_task` | `title: str`, `due: Optional[str]` | `{id, title, due_date, due_display, speech}` | Creates a task with natural language date parsing |
+| `list_tasks` | `status: "open"\|"done" = "open"`, `when: "today"\|"week"\|"all"` | `{tasks: Task[], count, speech}` | Lists open/completed tasks filtered by timeframe |
+| `complete_task` | `query: str` | `{id, title, ok, speech}` or `{ambiguous, candidates, speech}` | Completes task with fuzzy matching and disambiguation |
+| `save_note` | `text: str`, `tags: Optional[list[str]]` | `{id, title, text, tags, speech}` | Saves note with automatic title generation & tagging |
+| `search_notes` | `query: str`, `limit: int = 3` | `{notes: Note[], matches, speech}` | Keyword search with frequency relevance scoring |
+| `recall` | `question: str` | `{answer, sources: int[], speech}` | Bedrock Converse recall grounded strictly in notes |
+
+---
+
+## 🎨 Design System & Frontend Tokens
+
+The design strictly follows the project's cool-and-calm palette so that real-time live events immediately stand out:
+
+| Token Name | Hex Value | Primary Role |
+|---|---|---|
+| **Harbor** | `#E9EFF1` | Canvas app background |
+| **Sheet** | `#FFFFFF` / `#0F172A` | Panel and card backgrounds |
+| **Spruce** | `#10302F` / `#F1F5F9` | Primary text and major headers |
+| **Tide** | `#2F6F73` | Interactive buttons, check accents, active tab borders |
+| **Signal** | `#F0A030` | Live event status pill and new-trace amber highlight flash |
+| **Lilac** | `#6B5A8E` | Notes icon background and tag badges |
+| **Brick** | `#B23A2B` | Error toasts and high-priority indicators |
+| **Dark Navy** | `#070B14`, `#0B1120`, `#0F172A` | Sidebar, Live Activity trace, and dark theme |
+
+### Typography Roles
+- **Display & Interface:** `Bricolage Grotesque` (Weights 500, 600, 700, 800)
+- **Spoken Utterances & Notes:** `Newsreader` (Serif italic, 1.55 line height)
+- **MCP Code & JSON Payloads:** `JetBrains Mono` (Weights 400, 500)
+
+---
+
+## 💻 Tech Stack
+
+- **Backend:** Python 3.11+, FastAPI, Uvicorn, SQLAlchemy 2.0, SQLite (WAL mode)
+- **MCP Engine:** Official `mcp` 2.x SDK (`MCPServer`, Streamable HTTP transport)
+- **AWS Integration:** `boto3` Amazon Bedrock Runtime (`amazon.nova-micro-v1:0` / `claude-3-haiku`)
+- **Natural Language:** `dateparser` (relative date resolution), `rapidfuzz` (fuzzy matching)
+- **Real-Time Updates:** `sse-starlette` (Server-Sent Events)
+- **Frontend:** React 19, TypeScript, Vite 8, Tailwind CSS, Lucide Icons, Google Fonts
+- **Containerization:** Multi-stage Docker build & Docker Compose
+
+---
+
+## 🚀 Quickstart & Local Setup
 
 ### Prerequisites
 - Python 3.11+
 - Node.js 20+
+- (Optional) AWS Credentials configured in environment if testing live Bedrock calls
 
-### Option 1: Run with Docker Compose
+### Option A: Run with Docker (Recommended)
 ```bash
+git clone https://github.com/voicedesk/voicedesk.git
+cd voicedesk
+
 docker-compose up --build
 ```
 Access the dashboard at `http://localhost:8000`.
 
-### Option 2: Run Locally
+---
+
+### Option B: Run Locally
 
 #### 1. Backend Setup
 ```bash
-# Clone the repository
-git clone https://github.com/voicedesk/voicedesk.git
-cd voicedesk
+# From repository root
+cd backend
 
-# Install backend dependencies
-pip install -e ./backend[test]
+# Install dependencies via requirements.txt
+pip install -r requirements.txt
 
-# Run tests
-pytest backend/tests/test_backend.py -v
+# Run automated tests
+python -m pytest tests/test_backend.py -v
 
 # Start FastAPI server
-uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
+The backend initializes SQLite with WAL mode and pre-seeds the reference hackathon data (8 tasks, 12 notes, 3 due today, 24 tool calls).
 
 #### 2. Frontend Setup
 ```bash
+# In a new terminal window
 cd frontend
+
+# Install npm packages
 npm install
+
+# Start development server
 npm run dev
 ```
-Open `http://localhost:5173` in your browser. (The Vite dev server proxies `/api` and `/mcp` directly to `http://localhost:8000`).
+Open **[http://localhost:5173](http://localhost:5173)** in your browser. (Vite proxies all `/api` and `/mcp` requests directly to `http://localhost:8000`).
 
 ---
 
-## 🎨 Design Tokens
+## 🧪 Automated Testing & Verification
 
-VoiceDesk uses a custom design system optimized for voice-first visibility:
-
-- **Harbor** (`#E9EFF1`): Clean app canvas
-- **Sheet** (`#FFFFFF` / `#0F172A`): Content cards and panels
-- **Spruce** (`#10302F`): Primary text and titles
-- **Tide** (`#2F6F73`): Interactive accents and task highlights
-- **Signal** (`#F0A030`): Real-time live status and MCP activity flash
-- **Lilac** (`#6B5A8E`): Notes and knowledge capture
-- **Brick** (`#B23A2B`): Urgent priority and error alerts
-
-**Typography:**
-- *Interface & Display:* **Bricolage Grotesque**
-- *Spoken Lines & Notes:* **Newsreader** (Serif)
-- *Tools & JSON Payloads:* **JetBrains Mono**
-
----
-
-## 🧪 Testing
-
-Run the automated test suite:
+Run the test suite:
 ```bash
-pytest backend/tests/test_backend.py -v
+python -m pytest backend/tests/test_backend.py -v
 ```
-All 8 automated tests verify:
-- Health and protocol negotiation (`2025-11-25`)
-- Statistics calculation (`open_tasks`, `notes_captured`, `due_today`, `total_tool_calls`)
-- Real tool invocation via intent router (`add_task`, `list_tasks`, `save_note`, `search_notes`)
-- Fuzzy task completion and state mutations
+
+All 8 tests run against the live FastAPI application:
+```text
+backend/tests/test_backend.py::test_health PASSED               [ 12%]
+backend/tests/test_backend.py::test_get_stats PASSED            [ 25%]
+backend/tests/test_backend.py::test_get_tasks PASSED            [ 37%]
+backend/tests/test_backend.py::test_get_notes PASSED            [ 50%]
+backend/tests/test_backend.py::test_simulator_add_task PASSED   [ 62%]
+backend/tests/test_backend.py::test_simulator_list_tasks PASSED [ 75%]
+backend/tests/test_backend.py::test_simulator_save_note PASSED  [ 87%]
+backend/tests/test_backend.py::test_simulator_search_notes PASSED [100%]
+============================== 8 passed in 4.86s ==============================
+```
 
 ---
 
-## 📄 Documentation
+## 🧗 Challenges We Ran Into
 
-- [PRD, TRD & Design Plan](docs/PRD-TRD-Frontend.md)
-- [Friction Log (5 entries with fixes)](docs/friction-log.md)
-- [Product Feedback](docs/product-feedback.md)
+1. **MCP SDK v2.0 Breaking Changes:** The rename of `FastMCP` to `MCPServer` in the official Python SDK v2.x required adapting import patterns and discovering the built-in `streamable_http_app()` Starlette ASGI mount.
+2. **Ambiguous Voice Intent Resolution:** Natural voice commands like *"Mark buy done"* could match multiple open tasks. We implemented `rapidfuzz` scoring with threshold difference checks: if the confidence gap between candidates is under 15%, VoiceDesk asks a clarifying question rather than completing an unintended task.
+3. **Bedrock Latency in Voice Loops:** Standard Bedrock calls can introduce 800–1200ms latency. By choosing `amazon.nova-micro-v1:0` with a tight max token limit (150 tokens) and pre-filtering the top 3 relevant notes, we reduced latency to ~310 ms.
+4. **Timezone Normalization:** Natural language dates like *"tomorrow 4pm"* require localized reference anchoring to avoid UTC drift where late evening tasks shift to the next calendar day.
+
+---
+
+## 📚 What We Learned
+
+- **Real MCP over Fakes:** Watching the real JSON-RPC tool calls stream in real time creates immense confidence. Hackathon judges and users can verify the exact arguments and latency.
+- **Dual-Surface Simplicity:** Mounting the MCP transport and the REST routes over a single Python service layer guarantees the dashboard and voice assistant always share 100% consistent state.
+- **Ambient Voice UI:** Limiting animations to purposeful moments (microphone pulse and trace arrival flash) prevents cognitive fatigue in productivity dashboards.
+
+---
+
+## 🔭 What's Next for VoiceDesk
+
+- [ ] Direct Alexa+ Developer Preview device pairing.
+- [ ] Multi-user family and team shared workspaces.
+- [ ] Apple Reminders and Google Tasks two-way synchronization.
+- [ ] Streaming Converse audio tokens for instant speech playback.
+
+---
+
+## 📑 Hackathon Documentation Links
+
+- [PRD, TRD & Design Brief](docs/PRD-TRD-Frontend.md)
+- [Friction Log (5 Detailed Entries)](docs/friction-log.md)
+- [Product Feedback (MCP, Bedrock, Alexa+)](docs/product-feedback.md)
+- [2:45 Demo Recording Script](docs/demo-script.md)
 
 ---
 
 ## ⚖️ License
 
-Distributed under the **MIT License**. See `LICENSE` for details.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details. Built with ❤️ for the **Amazon Developer Hackathon (Devpost)**.
